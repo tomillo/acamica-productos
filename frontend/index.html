@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Productos</title>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+</head>
+<body>
+	<header>
+		<div class="navbar navbar-dark bg-dark box-shadow">
+			<div class="container d-flex justify-content-between">
+				<a href="index.html" class="navbar-brand d-flex align-items-center">
+					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+					<strong>Productos</strong>
+				</a>
+				
+				<div class="menu-guest d-none">
+					<nav class="nav nav-masthead justify-content-center">
+						<a class="nav-link text-white active" href="login.html">Entrar</a>
+						<a class="nav-link text-white" href="signup.html">Registro</a>
+					</nav>
+				</div>
+				<div class="menu-logged d-none">
+					<nav class="nav nav-masthead justify-content-center">
+						<a class="nav-link text-white" href="sell.html">Vender</a>
+						<a class="nav-link text-white" href="publications.html">Publicaciones</a>
+						<a class="nav-link text-white" href="index.html" id="logout">Salir</a>
+					</nav>
+				</div>
+			</div>
+		</div>
+	</header>
+
+	<main role="main">
+		<div class="container">
+			<section class="jumbotron text-center">
+				<div class="container">
+					<h1 class="jumbotron-heading">Productos</h1>
+					<p class="lead text-muted">Something short and leading about the collection below—its contents, the creator, etc. Make it short and sweet, but not too short so folks don't simply skip over it entirely.</p>
+					<p class="jumbotron-guest d-none">
+						<a href="login.html" class="btn btn-primary my-2 mr-2">Entrar</a>
+						<a href="signup.html" class="btn btn-secondary my-2">Registro</a>
+					</p>
+					<p class="jumbotron-logged d-none">
+						<a href="sell.html" class="btn btn-primary my-2 ml-2">Vender</a>
+						<a href="signup.html" class="btn btn-secondary my-2">Publicaciones</a>
+					</p>
+				</div>
+			</section>
+		</div>
+
+		<div class="album py-5 bg-light">
+			<div class="container">
+				<div class="row" id="products-list">
+				</div>
+			</div>
+		</div>
+	</main>
+
+	<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
+	<script src="productos.js"></script>
+</body>
+</html>
