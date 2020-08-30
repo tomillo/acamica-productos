@@ -1,32 +1,150 @@
+// NODE MODULES
 const express = require('express');
 const bodyParser = require('body-parser');
 const formidable = require('formidable');
 const path = require('path');
+const fs = require('fs').promises;
+const methodOverride = require('method-override')
 
+// SERVER DECLARE
 const server = express();
 
+// override with the X-HTTP-Method-Override header in the request
+server.use(methodOverride('_method'))
+
+// BODYPARSER DECLARE
 server.use(bodyParser.json());
 
-let arrayUser = [];
-let arrayArticle = [];
-let idUser = 1;
-let idArticle = 1;
+// STATIC path for forntend
+server.use('/frontend', express.static(path.join(__dirname, '..', 'frontend')));
+server.use('/images', express.static(path.join(__dirname, '..', 'backend', 'images')));
 
-server.get('/user' , (req,res) => {
-	res.status(200).json(arrayUser)
+// DATABASE
+let db = {
+	files: {
+		users: path.join('db', 'users.json'),
+		products: path.join('db', 'products.json')
+	},
+	users: {
+		add: async (data, callback) => {
+			let users;
+			let usersAdd;
+			users = await db.users.list();
+			users.push(data);
+			usersAdd = await fs.writeFile(db.files.users, JSON.stringify(users), 'utf8');
+			users = await db.users.list();
+			return users;
+		},
+		list: async (callback) => {
+			let data = await fs.readFile(db.files.users, 'utf8');
+			return (data) ? JSON.parse(data) : [];
+		}
+	},
+	products: {
+		add: async (data, callback) => {
+			let products;
+			let productsAdd;
+			products = await db.products.list();
+			products.push(data);
+			productsAdd = await fs.writeFile(db.files.products, JSON.stringify(products), 'utf8');
+			products = await db.products.list();
+			return products;
+		},
+		edit: async (data, index, callback) => {
+			let products;
+			let productsAdd;
+			products = await db.products.list();
+			products[index - 1] = data;
+			productsAdd = await fs.writeFile(db.files.products, JSON.stringify(products), 'utf8');
+			products = await db.products.list();
+			return products;
+		},
+		list: async (callback) => {
+			let data = await fs.readFile(db.files.products, 'utf8');
+			return (data) ? JSON.parse(data) : [];
+		}
+	}
+};
+
+// ROUTES
+server.get('/', (req, res) => {
+	res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
+});
+
+server.get('/login', (req, res) => {
+	res.sendFile(path.join(__dirname, '..', 'frontend', 'login.html'));
+});
+
+server.get('/signup', (req, res) => {
+	res.sendFile(path.join(__dirname, '..', 'frontend', 'signup.html'));
+});
+
+server.get('/sell', (req, res) => {
+	res.sendFile(path.join(__dirname, '..', 'frontend', 'sell.html'));
+});
+
+server.get('/publications', (req, res) => {
+	res.sendFile(path.join(__dirname, '..', 'frontend', 'publications.html'));
+});
+
+// REQUEST
+server.get('/user', (req, res) => {
+	user_list(req, res)
 })
 
-server.post('/user' , (req,res) => {
-	const {name, lastName, mail, password } = req.body;
+server.post('/user/signup', (req, res) => {
+	user_signup(req, res);
+});
+
+server.post('/user/login', (req, res) => {
+	user_login(req, res);
+})
+
+server.post('/user/:id/article', (req, res) => {
+	article_set(req, res);
+});
+
+server.put('/user/:id/article/:idArt', (req, res) => {
+	article_edit_put(req, res);
+});
+
+server.get('/user/:id/article', (req, res) => {
+	article_edit_get(req, res);
+});
+
+server.get('/article', (req, res) => {
+	article_get(req, res)
+});
+
+server.listen(3000, () => {
+	console.log('Server funcionando');
+});
+
+
+// FUNCTIONS (MODULES)
+function user_list(req, res) {
+	(async () => {
+		var users = await db.users.list();
+		res.status(200).json(users)
+	})();
+}
+
+function user_signup(req, res) {
+	const {
+		name,
+		lastName,
+		mail,
+		password
+	} = req.body;
 
 	let userObj = {
-		id: idUser,
+		id: 0,
 		name: req.body.name,
 		lastName: req.body.lastName,
 		mail: req.body.mail,
 		password: req.body.password
 	};
-	
+
 	// Validación formulario
 	if (!name || !lastName || !mail || !password) {
 		res.status(200).json({
@@ -35,143 +153,242 @@ server.post('/user' , (req,res) => {
 		});
 	} else {
 		// Email duplicados en array
-		const found = arrayUser.some(user => user.mail === mail)
-		if (found) {
-			return res.status(200).json({
-				status: false,
-				info: `El email ya existe en la DB`
-			});
-		} else {
-			// Agrega usuario
-			arrayUser.push(userObj);
-			idUser++;
-			
-			res.status(200).json({
-				status: true,
-				info: `Felicidades ${req.body.name}. Ahora debes ingresar tus datos de sesión.`
-			});
-		}
+		(async () => {
+
+			let users = await db.users.list();
+			let found = users.some(user => user.mail === mail);
+
+			if (found) {
+				return res.status(200).json({
+					status: false,
+					info: `El email ya existe en la DB`
+				});
+			} else {
+				// Agrega usuario
+				idUser = (users.length) ? parseInt((users[users.length - 1].id) + 1) : 1;
+				userObj.id = idUser;
+				await db.users.add(userObj);
+				res.status(200).json({
+					status: true,
+					info: `Felicidades ${req.body.name}. Ahora debes ingresar tus datos de sesión.`
+				});
+			}
+		})()
 	}
-});
-server.post('/user/login', (req,res) => {
-	const { mail, password } = req.body;
+}
+
+function user_login(req, res) {
+	const {
+		mail,
+		password
+	} = req.body;
 	let valid = 0;
 	let userValid = null;
-	
-	arrayUser.filter((user) => {
-		console.log(user.name);
-		let cond = user.mail === mail && user.password === password;
-		if (cond) {
+
+	(async () => {
+
+		let users = await db.users.list();
+		let userFind = users.find(user => user.mail === mail && user.password === password);
+
+		if (userFind) {
 			valid += 1;
-			userValid = user.id;
+			userValid = userFind.id;
 		}
-	});
-	if (valid > 0) {
-		res.status(200).json({
-			status: true,
-			info: "Sesion iniciada",
-			ls: userValid
+
+		if (valid > 0) {
+			res.status(200).json({
+				status: true,
+				info: "Sesion iniciada",
+				ls: userValid
+			});
+		} else {
+			res.status(200).json({
+				status: false,
+				info: "Los datos no coinciden",
+				ls: userValid
+			});
+		}
+	})()
+}
+
+function article_set(req, res) {
+	let
+		form = new formidable.IncomingForm(),
+		idArticle = 0,
+		imageEnd_ = '';
+
+	(async () => {
+
+		let products = await db.products.list();
+		idArticle = (products.length) ? parseInt((products[products.length - 1].idArt) + 1) : 1;
+
+		form.parse(req, (err, fields, files) => {
+			//console.log(files);
+
+			(async () => {
+
+				let article = {
+					idArt: idArticle,
+					name: fields.name,
+					description: fields.description,
+					precio: fields.precio,
+					estado: fields.estado,
+					idUser: fields.idUser,
+					image: imageEnd_
+				};
+
+				await db.products.add(article);
+
+				res.status(200).json({
+					status: true,
+					info: `Se ha ingresado el articulo`
+				});
+
+			})();
+
 		});
-	} else {
-		res.status(200).json({
-			status: false,
-			info: "Los datos no coinciden",
-			ls: userValid
+
+		form.on('fileBegin', function(name, file) {
+
+			let
+				ext = /[^.]+$/.exec(file.name)[0],
+				imageEnd = (idArticle) + "." + ext.toLowerCase();
+			imageEnd_ = imageEnd;
+			file.path = __dirname + '/images/' + imageEnd;
+
 		});
-	}
-})
 
-server.post('/user/:id/article' , (req,res) => {
-	var form = new formidable.IncomingForm();
-
-    form.parse(req, (err, fields, files) => {
-		res.status(200).json({
-			status: true,
-			info: `Se ha ingresado el articulo`
+		form.on('file', function(name, file) {
+			console.log('Uploaded ' + file.name);
 		});
-	});
+	})()
+}
 
-    form.on('fileBegin', function (name, file){
-        file.path = __dirname + '/images/' + file.name;
-    });
+function article_edit_get(req, res) {
+	(async () => {
+		let	products = await db.products.list();
+		const productId = products.find(product => product.idArt == req.params.id);
 
-    form.on('file', function (name, file){
-        console.log('Uploaded ' + file.name);
-    });
-	// const {name, description, precio, estado, image, idUser} = req.body;
+		if (productId) {
+			res.status(200).json({
+				status: true,
+				articles: productId
+			});
+		} else {
+			res.status(200).json({
+				status: false,
+				info: "Este producto no existe"
+			});
+		}
+		
+		// if (products.length == 0) {
+		// 	res.status(200).json({
+		// 		status: false,
+		// 		info: "No hay productos agregados"
+		// 	})
+		// } else {
+		// 	res.status(200).json({
+		// 		status: true,
+		// 		articles: products,
+		// 		users: users
+		// 	})
+		// }
+	})();
+}
 
-	// if (!name || !description || !precio || !estado || !image) {
-	// 	res.status(200).json({
-	// 		status: false,
-	// 		info: "Faltan ingresar datos para crear el articulo"
-	// 	});
-	// } else {
-	// 	let article = {
-	// 		idArt: idArticle,
-	// 		name: req.body.name,
-	// 		description: req.body.description,
-	// 		precio: req.body.precio,
-	// 		estado: req.body.estado,
-	// 		image: req.body.image,
-	// 		idUser: req.body.idUser
-	// 	};
-	// 	idArticle++;
-	// 	arrayArticle.push(article);
-	// 	let paramsId = req.params.id;
-	// 	let findId = arrayUser.find(function(user){
-	// 		return (user.id == paramsId)
-	// 	})
-	// 	if(findId.article){
-	// 		findId.article.push(article);
-	// 	}else{
-	// 		findId.article = [article]
-	// 	}
-	// 	let newObject = {
-	// 		id: paramsId,
-	// 		name: findId.name,
-	// 		lastName: findId.lastName,
-	// 		mail: findId.mail,
-	// 		password: findId.password,
-	// 		article : findId.article
-	// 	}
-	// 	let indexUser = arrayUser.indexOf(findId);
-	// 	arrayUser.splice(indexUser, 1, newObject);
+function article_edit_put(req, res) {
+	let
+		form = new formidable.IncomingForm(),
+		idArticle = 0,
+		imageEnd_ = '';
 
-	// 	res.status(200).json({
-	// 		status: true,
-	// 		info: `Se ha ingresado el articulo ${req.body.name}`
-	// 	});
-	// }
-})
-server.get('/article' , (req,res) => {
-	if (arrayArticle.length == 0) {
-		res.status(200).json({
-			status: false,
-			info: "No hay productos agregados"
-		})
-	} else {
-		res.status(200).json({
-			status: true,
-			articles: arrayArticle,
-			users: arrayUser
-		})
-	}
-})
-server.listen(3000, () => {
-	console.log('Server funcionando')
-});
-// {
-//     "id": "1",
-//     "name": "Jose",
-//     "lastName": "Bortoletto",
-//     "mail":"123@gmail.com",
-//     "password":"1123"
-// }
-// {
-//     "id": "1",
-//     "name": "Mouse",
-//     "description": "periferico",
-//     "precio":"1000",
-//     "estado":"publicado",
-//     "image":"https://resource.logitechg.com/w_659,c_limit,f_auto,q_auto:best,f_auto,dpr_2.0/content/dam/gaming/en/products/pro-mouse/promouse-hero.png?v=1"
-// }
+	(async () => {
+
+		let products = await db.products.list();
+		const productId = products.find(product => product.idArt == req.params.idArt);
+
+		if (productId) {
+			form.parse(req, (err, fields, files) => {
+				(async () => {
+					let article = {}
+
+					// Si carga imagen lo reemplaza, caso contrario mantiene la misma cargada
+					if (form.bytesReceived > 707) {
+						article = {
+							idArt: req.params.idArt,
+							name: fields.name,
+							description: fields.description,
+							precio: fields.precio,
+							estado: fields.estado,
+							idUser: fields.idUser,
+							image: imageEnd_
+						};
+					} else  {
+						article = {
+							idArt: req.params.idArt,
+							name: fields.name,
+							description: fields.description,
+							precio: fields.precio,
+							estado: fields.estado,
+							idUser: fields.idUser,
+							image: products[req.params.idArt - 1].image
+						}
+					}
+					await db.products.edit(article, req.params.idArt);
+	
+					res.status(200).json({
+						status: true,
+						info: `Se ha modificado el producto`
+					});
+	
+				})();
+	
+			});
+	
+			form.on('fileBegin', function(name, file) {
+				if (form.bytesReceived > 707) {
+					let
+						ext = /[^.]+$/.exec(file.name)[0],
+						imageEnd = (req.params.idArt) + "." + ext.toLowerCase();
+					imageEnd_ = imageEnd;
+					file.path = __dirname + '/images/' + imageEnd;
+				}
+			});
+	
+			form.on('file', function(name, file) {
+				console.log('Uploaded ' + file.name);
+			});
+
+			// Send error message back to client.
+			form.on('error', function (message) {
+				console.log(message);
+			});
+		} else {
+			res.status(200).json({
+				status: false,
+				info: "Este producto no existe"
+			});
+		}
+	})()
+}
+
+function article_get(req, res) {
+	(async () => {
+		let
+			products = await db.products.list(),
+			users = await db.users.list();
+
+		if (products.length == 0) {
+			res.status(200).json({
+				status: false,
+				info: "No hay productos agregados"
+			})
+		} else {
+			res.status(200).json({
+				status: true,
+				articles: products,
+				users: users
+			})
+		}
+	})();
+}

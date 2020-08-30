@@ -4,6 +4,8 @@
   "description": "",
   "main": "app.js",
   "scripts": {
+    "start": "node app",
+    "dev": "nodemon --watch src app",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -13,6 +15,7 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "formidable": "^1.2.2",
+    "method-override": "^3.0.0",
     "nodemon": "^2.0.4"
   }
 }
