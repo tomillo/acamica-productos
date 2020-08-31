@@ -59,6 +59,16 @@ let db = {
 			products = await db.products.list();
 			return products;
 		},
+		delete: async (index, callback) => {
+			let products;
+			let productsDel;
+			let productsAdd;
+			products = await db.products.list();
+			productsDel = products.filter(product => product.idArt != parseInt(index));
+			productsAdd = await fs.writeFile(db.files.products, JSON.stringify(productsDel), 'utf8');
+			products = await db.products.list();
+			return products;
+		},
 		list: async (callback) => {
 			let data = await fs.readFile(db.files.products, 'utf8');
 			return (data) ? JSON.parse(data) : [];
@@ -100,20 +110,24 @@ server.post('/user/login', (req, res) => {
 	user_login(req, res);
 })
 
-server.post('/user/:id/article', (req, res) => {
-	article_set(req, res);
+server.get('/article', (req, res) => {
+	article_get(req, res)
 });
 
-server.put('/user/:id/article/:idArt', (req, res) => {
-	article_edit_put(req, res);
+server.post('/user/:id/article', (req, res) => {
+	article_set(req, res);
 });
 
 server.get('/user/:id/article', (req, res) => {
 	article_edit_get(req, res);
 });
 
-server.get('/article', (req, res) => {
-	article_get(req, res)
+server.put('/user/:id/article/:idArt', (req, res) => {
+	article_edit_put(req, res);
+});
+
+server.delete('/user/:id/article/:idArt', (req, res) => {
+	article_delete(req, res);
 });
 
 server.listen(3000, () => {
@@ -228,7 +242,7 @@ function article_set(req, res) {
 			(async () => {
 
 				let article = {
-					idArt: idArticle,
+					idArt: Number(idArticle),
 					name: fields.name,
 					description: fields.description,
 					precio: fields.precio,
@@ -370,6 +384,34 @@ function article_edit_put(req, res) {
 			});
 		}
 	})()
+}
+
+function article_delete(req, res) {
+	(async () => {
+		let products = await db.products.list();
+		const productId = products.find(product => product.idArt == req.params.idArt);
+
+		if (productId) {
+			await db.products.delete(req.params.idArt);
+
+			// Borra imagen
+			fs.unlink(path.join('images', productId.image), (err) => {
+				if (err) {
+					console.error(err)
+					return
+				}
+			});
+			res.status(200).json({
+				status: true,
+				info: "El producto ha sido eliminado"
+			})
+		} else {
+			res.status(200).json({
+				status: false,
+				info: "El producto no puede eliminarse porque no existe o no tienes los privilegios"
+			})
+		}
+	})();
 }
 
 function article_get(req, res) {

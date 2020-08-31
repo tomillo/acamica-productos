@@ -25,10 +25,13 @@ const
 	productsList = document.getElementById("products-list"),
 	home = document.getElementById("home"),
 	publications = document.getElementById("publications"),
+	publicationsTableCon = document.querySelector(".table"),
 	publicationsTable = document.getElementById("publications-table"),
 	publicationsEdit = document.getElementById("modal-edit"),
 	publicationsBtn_edit = document.getElementsByClassName('btn-edit'),
-	publicationsBtn_save = document.querySelector('.btn-save');
+	publicationsBtn_save = document.querySelector('.btn-save'),
+	publicationsBtn_remove = document.getElementsByClassName('btn-delete'),
+	publicationsBtn_removeCon = document.querySelector('.btn-delete-confirm');
 
 let form_res = '';
 const lsLogged = localStorage.getItem(localStorage.key("session"));
@@ -228,13 +231,16 @@ if (formSell) {
 // PUBLICATIONS
 if (publications) {
 	if (lsLogged) {
+		let productsById = ""
+		let dataArticle_id = "";
 		const publicationsList = async () => {
 			try {
 				let res = await fetch('http://localhost:3000/article');
 				let products_res = await res.json();
 
 				if (products_res.status == true) {
-					const productsById = products_res.articles.filter(product => product.idUser === lsLogged);
+					productsById = products_res.articles.filter(product => product.idUser === lsLogged);
+
 
 					let table = '';
 					for (let i = 0; i < productsById.length; i++) {
@@ -250,7 +256,7 @@ if (publications) {
 								<a class="btn btn-secondary btn-sm btn-edit" data-toggle="modal" data-target="#modal-edit" data-article="${productsById[i].idArt}" title="Editar">
 									<span class="oi oi-pencil"></span>
 								</a>
-								<a class="btn btn-danger btn-sm" href="#" title="Eliminar">
+								<a class="btn btn-danger btn-sm btn-delete" data-toggle="modal" data-target="#modal-delete" data-article="${productsById[i].idArt}" title="Eliminar">
 									<span class="oi oi-trash"></span>
 								</a>
 							</td>
@@ -259,12 +265,12 @@ if (publications) {
 					publicationsTable.innerHTML = table;
 					
 					// EDIT
-					let dataArticle_id = "";
-					// Get
+					// Detecta ID del producto y pega valores en los input
 					(() => {
 						for(var i = 0; i < publicationsBtn_edit.length; i++){
 							publicationsBtn_edit[i].onclick = function(){
-								let productArray = products_res.articles[this.dataset.article - 1];
+								let productArray = products_res.articles.find(product => product.idArt == this.dataset.article);
+
 								dataArticle_id = this.dataset.article;
 
 								inputName.value = productArray.name;
@@ -275,7 +281,7 @@ if (publications) {
 						}
 					})();
 
-					// Put
+					// PUT
 					publicationsBtn_save.onclick = async () => {
 						const data = {
 							"name": inputName.value,
@@ -302,7 +308,7 @@ if (publications) {
 						})
 						.then(response => response.json())
 						.then(data => {
-							// Comprueba que la publicación sea correcta
+							// Comprueba que la edición sea correcta
 							if (data.status) {
 								window.location = '/publications';
 							} else {
@@ -314,8 +320,42 @@ if (publications) {
 							console.error(error)
 						})
 					}
+
+					// DELETE
+					// Detecta ID del producto
+					(() => {
+						for(var i = 0; i < publicationsBtn_remove.length; i++){
+							publicationsBtn_remove[i].onclick = function(){
+								dataArticle_id = this.dataset.article;
+							}
+						}
+					})();
+
+					publicationsBtn_removeCon.onclick = async () => {
+						const options = {
+							method: 'DELETE'
+						};
+					
+						let deleteProd = await fetch(`http://localhost:3000/user/${lsLogged}/article/${dataArticle_id}`, options);
+						delete_res = await deleteProd.json();
+
+						// Comprueba el estado de la eliminación
+						if (await delete_res.status) {
+							alertSuccess.innerText = delete_res.info
+							alertSuccess.classList.remove("d-none");
+							$('#modal-delete').modal('hide');
+
+							// Refresca tabla de productos
+							publicationsList();
+							// Limpia tabla al borrar el último producto
+							publicationsTableFn(1);
+						} else {
+							alertDanger.innerText = delete_res.info
+							alertDanger.classList.remove("d-none");
+						}
+					}
 				} else {
-					publicationsTable.innerHTML = `<div class="col-md-12 text-center"><h2>${products_res.info}</h2></div>`
+					publicationsTableFn(0);
 				}
 			}
 			catch(error) {
@@ -324,11 +364,25 @@ if (publications) {
 		}
 
 		publicationsList();
+
+		// Mensaje para no mostrar la tabla vacía
+		const publicationsTableFn = (number) => {
+			if (productsById.length === number) {
+				return publicationsTableCon.innerHTML = `
+					<div class="text-center">
+						<span class="oi oi-heart iconic-lg"></span>
+						<h5 class="mb-3">No tienes publicaciones agregadas.</h5>
+						<a class="btn btn-primary btn-lg" href="/sell">Vender</a>
+					</div>
+				`;
+			}
+		}
 	} else {
 		// Redirige al login
 		window.location = 'login';
 	}
 }
+
 
 // MENU
 if (home || publications) {
