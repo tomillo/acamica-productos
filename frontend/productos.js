@@ -48,7 +48,7 @@ const form = async (data, endpoint) => {
 
 	let res = await fetch(endpoint, options);
 	form_res = await res.json();
-
+	console.log(form_res);
 	return form_res;
 }
 
@@ -111,6 +111,7 @@ if (loginButton) {
 
 					// Redirige al home
 					window.location = '/';
+					console.log(form_res)
 				} else {
 					alertDanger.classList.remove("d-none");
 					alertDanger.innerText = form_res.info;
@@ -190,7 +191,7 @@ if (formSell) {
 				"name": inputName.value,
 				"description": sellDesc.value,
 				"precio": sellPrice.value,
-				"estado": "0",
+				"estado": 1,
 				"idUser": lsLogged
 			}
 		
@@ -244,7 +245,7 @@ if (publications) {
 
 					let table = '';
 					for (let i = 0; i < productsById.length; i++) {
-						let status = productsById[i].estado == 0 ? "Publicado" : "Vendido";
+						let status = productsById[i].estado == 1 ? "Publicado" : "Vendido";
 
 						table += `<tr>
 							<th scope="row">${productsById[i].idArt}</th>

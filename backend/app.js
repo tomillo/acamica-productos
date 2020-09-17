@@ -19,6 +19,14 @@ server.use(bodyParser.json());
 server.use('/frontend', express.static(path.join(__dirname, '..', 'frontend')));
 server.use('/images', express.static(path.join(__dirname, '..', 'backend', 'images')));
 
+const mysql = require("./db/mysql_connection")
+mysql.init()
+.then(async () => {
+	console.log('DB connected');
+}).catch((err) => {
+	console.log('Error al conectar a la db', err);
+});	
+
 // DATABASE
 let db = {
 	files: {
@@ -30,14 +38,23 @@ let db = {
 			let users;
 			let usersAdd;
 			users = await db.users.list();
-			users.push(data);
-			usersAdd = await fs.writeFile(db.files.users, JSON.stringify(users), 'utf8');
+			// users.push(data);
+			// usersAdd = await fs.writeFile(db.files.users, JSON.stringify(users), 'utf8');
+			usersAdd = mysql.query(`INSERT INTO users(name, lastname, mail, password, id_permisos) VALUES('${data.name}', '${data.lastName}', '${data.mail}', '${data.password}', '${data.id_permisos}')`); 
 			users = await db.users.list();
 			return users;
 		},
 		list: async (callback) => {
-			let data = await fs.readFile(db.files.users, 'utf8');
-			return (data) ? JSON.parse(data) : [];
+			let data = mysql.sequelize.query(`SELECT u.name, u.lastName, u.mail, u.password, p.name FROM users u INNER JOIN permisos p ON u.id_permisos = p.id`,
+			{
+				type: mysql.Sequelize.QueryTypes.SELECT,
+				raw: true,
+				plain: false,
+				logging: console.log
+			}
+			).then(resultados => resultados);
+			// let data = await fs.readFile(db.files.users, 'utf8');
+			return (data) ? data : [];
 		}
 	},
 	products: {
@@ -45,8 +62,10 @@ let db = {
 			let products;
 			let productsAdd;
 			products = await db.products.list();
-			products.push(data);
-			productsAdd = await fs.writeFile(db.files.products, JSON.stringify(products), 'utf8');
+			// products.push(data);
+			// productsAdd = await fs.writeFile(db.files.products, JSON.stringify(products), 'utf8');
+			productsAdd = mysql.query(`INSERT INTO products(name, description, precio, id_estado, id_user, image) VALUES('${data.name}', '${data.description}', '${data.precio}', '${data.estado}', '${data.idUser}', '${data.image}')`);
+			
 			products = await db.products.list();
 			return products;
 		},
@@ -152,11 +171,12 @@ function user_signup(req, res) {
 	} = req.body;
 
 	let userObj = {
-		id: 0,
+		// id: 0,
 		name: req.body.name,
 		lastName: req.body.lastName,
 		mail: req.body.mail,
-		password: req.body.password
+		password: req.body.password,
+		id_permisos: 3
 	};
 
 	// Validación formulario
@@ -179,8 +199,8 @@ function user_signup(req, res) {
 				});
 			} else {
 				// Agrega usuario
-				idUser = (users.length) ? parseInt((users[users.length - 1].id) + 1) : 1;
-				userObj.id = idUser;
+				// idUser = (users.length) ? parseInt((users[users.length - 1].id) + 1) : 1;
+				// userObj.id = idUser;
 				await db.users.add(userObj);
 				res.status(200).json({
 					status: true,
@@ -242,7 +262,7 @@ function article_set(req, res) {
 			(async () => {
 
 				let article = {
-					idArt: Number(idArticle),
+					// idArt: Number(idArticle),
 					name: fields.name,
 					description: fields.description,
 					precio: fields.precio,
